@@ -1,0 +1,20 @@
+[
+  {
+    "sector": "Energy",
+    "three_signal": "neutral",
+    "regime_model": "neutral",
+    "final_sentiment": "neutral"
+  },
+  {
+    "sector": "Financials",
+    "three_signal": "bullish",
+    "regime_model": "bullish",
+    "final_sentiment": "bullish"
+  },
+  {
+    "sector": "Technology",
+    "three_signal": "bearish",
+    "regime_model": "bullish",
+    "final_sentiment": "neutral"
+  }
+]

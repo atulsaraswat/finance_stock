@@ -1,0 +1,35 @@
+[
+  {
+    "sector": "Energy",
+    "three_signal": "neutral",
+    "regime_model": "bearish",
+    "final_sentiment": "neutral",
+    "sector_score": 41,
+    "trend_pct": -5.58,
+    "vol_pct": 1.09,
+    "outlook_tailwinds": "renewables investment; energy transition demand; infrastructure spending; balanced growth drivers with watch for catalysts",
+    "outlook_headwinds": "fossil fuel phase-out risk; geopolitical volatility; commodity-price swings; mixed macro signals and policy risk"
+  },
+  {
+    "sector": "Financials",
+    "three_signal": "neutral",
+    "regime_model": "bullish",
+    "final_sentiment": "neutral",
+    "sector_score": 66,
+    "trend_pct": 2.76,
+    "vol_pct": 0.74,
+    "outlook_tailwinds": "rate normalization; fintech adoption; credit expansion; balanced growth drivers with watch for catalysts",
+    "outlook_headwinds": "credit stress; regulatory change; digital disruption; mixed macro signals and policy risk"
+  },
+  {
+    "sector": "Technology",
+    "three_signal": "bearish",
+    "regime_model": "bullish",
+    "final_sentiment": "neutral",
+    "sector_score": 66,
+    "trend_pct": 3.32,
+    "vol_pct": 0.7,
+    "outlook_tailwinds": "digital transformation; AI and cloud adoption; software-led business models; balanced growth drivers with watch for catalysts",
+    "outlook_headwinds": "regulatory scrutiny; cyclical semiconductor demand; valuation pressure; mixed macro signals and policy risk"
+  }
+]
