@@ -161,7 +161,7 @@ def generate_sample_data(days: int = 360) -> pd.DataFrame:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', help='CSV file with columns date,sector,close', default=None)
-    parser.add_argument('--output', help='Output JSON file', default='sentiment_output.json')
+    parser.add_argument('--output', help='Output JSON file', default='Finance/sentiment_output.json')
     # Three-signal params
     parser.add_argument('--sma-short', type=int, default=50)
     parser.add_argument('--sma-long', type=int, default=200)
