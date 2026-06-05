@@ -1,0 +1,40 @@
+{
+  "name": "Atul Saraswat",
+  "title": "Technical Director",
+  "summary": "Enterprise cloud architect and site reliability leader with deep expertise in Azure-based platforms, AI-driven solutions, cloud security, and infrastructure automation. Experienced in defining technology strategy, modernizing platforms, and architecting secure, compliant, high-scale systems.",
+  "skills": [
+    "azure",
+    "oci",
+    "aws",
+    "gcp",
+    "terraform",
+    "kubernetes",
+    "docker",
+    "ansible",
+    "devops",
+    "site reliability engineering",
+    "cloud security",
+    "infrastructure as code",
+    "python",
+    "powershell",
+    "api design",
+    "monitoring",
+    "grafana",
+    "elasticsearch",
+    "postgresql",
+    "mongodb",
+    "security compliance",
+    "ai",
+    "agentic ai"
+  ],
+  "industry_experience": [
+    "fintech",
+    "financial services",
+    "enterprise software",
+    "cloud infrastructure",
+    "healthcare",
+    "payments"
+  ],
+  "location": "Alpharetta, GA",
+  "years_experience": 18
+}

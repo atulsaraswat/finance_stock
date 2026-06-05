@@ -1,0 +1,42 @@
+[
+  {
+    "id": "job-001",
+    "company": "Sunrise Fintech",
+    "title": "Backend Software Engineer",
+    "location": "remote",
+    "description": "Build and maintain APIs for payment processing systems. Collaborate with product and data teams.",
+    "skills": ["python", "api design", "cloud services", "docker"],
+    "tags": ["fintech", "backend", "remote"],
+    "minimum_years_experience": 4
+  },
+  {
+    "id": "job-002",
+    "company": "HealthSync",
+    "title": "Full Stack Developer",
+    "location": "New York",
+    "description": "Work on data-driven healthcare web applications using JavaScript and Python-based services.",
+    "skills": ["javascript", "python", "react", "healthcare"],
+    "tags": ["healthcare", "full stack", "web"],
+    "minimum_years_experience": 5
+  },
+  {
+    "id": "job-003",
+    "company": "RetailWorks",
+    "title": "Software Engineer Intern",
+    "location": "remote",
+    "description": "Assist with e-commerce platform features and analytics tools.",
+    "skills": ["python", "data analysis", "sql"],
+    "tags": ["e-commerce", "analytics", "internship"],
+    "minimum_years_experience": 1
+  },
+  {
+    "id": "job-004",
+    "company": "CloudCore",
+    "title": "Senior DevOps Engineer",
+    "location": "remote",
+    "description": "Design and automate cloud infrastructure for large-scale distributed systems.",
+    "skills": ["cloud services", "docker", "kubernetes", "automation"],
+    "tags": ["cloud", "devops", "remote"],
+    "minimum_years_experience": 7
+  }
+]
