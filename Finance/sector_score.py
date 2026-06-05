@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -236,7 +237,11 @@ def calculate_sector_score(df: pd.DataFrame, params: Dict[str, object]) -> Dict[
 def main() -> None:
     parser = argparse.ArgumentParser(description='Calculate sector score, tailwinds, and headwinds.')
     parser.add_argument('--input', help='CSV file with columns date,sector,close', default=None)
-    parser.add_argument('--output', help='Output JSON file', default='Finance/sector_score_output.json')
+    parser.add_argument(
+        '--output',
+        help='Output JSON file',
+        default=str((Path(__file__).resolve().parent / 'sector_score_output.json')),
+    )
     args = parser.parse_args()
 
     if args.input:

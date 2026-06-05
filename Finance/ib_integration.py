@@ -11,6 +11,7 @@ Prerequisites:
 from __future__ import annotations
 import argparse
 import json
+from pathlib import Path
 from typing import List, Dict
 
 import pandas as pd
@@ -82,7 +83,10 @@ def main() -> None:
     parser.add_argument('--port', type=int, default=7497, help='Paper trading default port is 7497')
     parser.add_argument('--client-id', type=int, default=1)
     parser.add_argument('--hist-days', type=int, default=360)
-    parser.add_argument('--output', default='Finance/ib_sentiment.json')
+    parser.add_argument(
+        '--output',
+        default=str((Path(__file__).resolve().parent / 'ib_sentiment.json')),
+    )
     parser.add_argument('--positions-csv', help='CSV file with symbol[,position] to use as fallback or instead of live IB positions')
     args = parser.parse_args()
 

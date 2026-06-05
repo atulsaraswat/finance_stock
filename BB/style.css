@@ -1,0 +1,521 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #0a0a12;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #e8e8f0;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-tag {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(102, 204, 255, 0.65);
+  margin-bottom: 4px;
+}
+
+.hud-tag.enemy-tag {
+  color: rgba(255, 102, 102, 0.75);
+}
+
+#hud-frame {
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(102, 204, 255, 0.35);
+  border-style: solid;
+}
+
+.hud-corner.tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.hud-corner.tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.hud-corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.hud-corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+#hud-top {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 28px;
+}
+
+.hud-block {
+  text-align: center;
+  min-width: 72px;
+}
+
+.hud-block span:last-child {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+#hud-left {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+}
+
+#hud-right {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
+  text-align: right;
+}
+
+.vitals-panel,
+.ammo-panel,
+.enemy-panel {
+  background: rgba(0, 8, 16, 0.72);
+  border: 1px solid rgba(102, 204, 255, 0.18);
+  border-radius: 6px;
+  padding: 12px 16px;
+  backdrop-filter: blur(8px);
+  min-width: 180px;
+}
+
+.health-bar {
+  width: 140px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.health-bar.large {
+  width: 180px;
+  height: 14px;
+}
+
+.health-bar.enemy-bar {
+  width: 200px;
+}
+
+.health-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+
+.health-fill.player {
+  background: linear-gradient(90deg, #0088cc, #44ddff);
+  box-shadow: 0 0 8px rgba(68, 221, 255, 0.5);
+}
+
+.health-fill.enemy {
+  background: linear-gradient(90deg, #aa2222, #ff5555);
+  box-shadow: 0 0 8px rgba(255, 85, 85, 0.4);
+}
+
+.vitals-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.vitals-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: #44ddff;
+}
+
+.vitals-unit {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.1em;
+}
+
+.ammo-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.ammo-current {
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.ammo-sep {
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.25);
+  margin: 0 2px;
+}
+
+.ammo-reserve {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.reload-bar-wrap {
+  margin-top: 8px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.reload-bar {
+  height: 100%;
+  width: 0%;
+  background: #ffaa44;
+  border-radius: 2px;
+  transition: width 0.05s linear;
+}
+
+.weapon-status {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: rgba(102, 204, 255, 0.7);
+}
+
+.weapon-status.reloading {
+  color: #ffaa44;
+}
+
+.weapon-status.empty {
+  color: #ff4444;
+}
+
+#hud-bottom {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.enemy-row {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dot-sep {
+  margin: 0 6px;
+  opacity: 0.4;
+}
+
+#enemy-distance {
+  color: rgba(255, 136, 136, 0.85);
+}
+
+.threat-low { color: #6cf; }
+.threat-med { color: #fa4; }
+.threat-high { color: #f44; animation: threat-pulse 0.6s ease infinite alternate; }
+
+@keyframes threat-pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; text-shadow: 0 0 12px #f44; }
+}
+
+#minimap {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  border: 1px solid rgba(102, 204, 255, 0.25);
+  border-radius: 6px;
+  background: rgba(0, 8, 16, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  transition: transform 0.08s ease;
+}
+
+.ch-line {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.ch-top, .ch-bottom {
+  width: 2px;
+  height: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ch-top { top: 0; }
+.ch-bottom { bottom: 0; }
+
+.ch-left, .ch-right {
+  width: 8px;
+  height: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ch-left { left: 0; }
+.ch-right { right: 0; }
+
+.ch-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 200, 80, 0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#crosshair.spread {
+  transform: translate(-50%, -50%) scale(1.35);
+}
+
+#crosshair.cooldown .ch-dot {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+#hit-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.08s;
+}
+
+#hit-marker.show {
+  opacity: 1;
+}
+
+.hm-line {
+  position: absolute;
+  width: 10px;
+  height: 2px;
+  background: #fff;
+  box-shadow: 0 0 6px #ff4444;
+}
+
+.hm-tl { top: 2px; left: 2px; transform: rotate(-45deg); }
+.hm-tr { top: 2px; right: 2px; transform: rotate(45deg); }
+.hm-bl { bottom: 2px; left: 2px; transform: rotate(45deg); }
+.hm-br { bottom: 2px; right: 2px; transform: rotate(-45deg); }
+
+#enemy-pointer {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #ff5555;
+  font-size: 14px;
+  filter: drop-shadow(0 0 6px rgba(255, 68, 68, 0.8));
+}
+
+#enemy-pointer-arrow {
+  font-size: 18px;
+  line-height: 1;
+}
+
+#enemy-pointer-dist {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+#damage-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(180, 0, 0, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+  pointer-events: none;
+}
+
+#damage-vignette.active {
+  opacity: 1;
+}
+
+#hud-message {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#hud-message.show {
+  opacity: 1;
+}
+
+#ammo-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 200, 80, 0.35) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.05s;
+}
+
+#ammo-flash.active {
+  opacity: 1;
+}
+
+#start-screen,
+#game-over {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a12 70%);
+  z-index: 100;
+  text-align: center;
+}
+
+#start-screen h1,
+#game-over h1 {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  background: linear-gradient(135deg, #6cf, #0af, #f66);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 36px;
+  letter-spacing: 0.05em;
+}
+
+.controls {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px 36px;
+  margin-bottom: 32px;
+}
+
+.controls h2 {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 16px;
+}
+
+.controls ul {
+  list-style: none;
+  text-align: left;
+}
+
+.controls li {
+  padding: 6px 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+kbd {
+  display: inline-block;
+  min-width: 28px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-right: 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+button {
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 40px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0af, #6cf);
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(0, 170, 255, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(0, 170, 255, 0.5);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#result-message {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 12px 0 28px;
+  font-size: 1.1rem;
+}
+
+#game-over.victory h1 {
+  background: linear-gradient(135deg, #4f8, #6cf);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+#game-over.defeat h1 {
+  background: linear-gradient(135deg, #f44, #f88);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
