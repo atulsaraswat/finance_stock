@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="ui">
+  <div id="ui" class="menu-open">
     <div id="hud-frame">
       <div class="hud-corner tl"></div>
       <div class="hud-corner tr"></div>
@@ -25,19 +25,23 @@
         <span id="kills">0</span>
       </div>
       <div class="hud-block">
+        <span class="hud-tag">DIFFICULTY</span>
+        <span id="hud-difficulty">HARD</span>
+      </div>
+      <div class="hud-block">
         <span class="hud-tag">THREAT</span>
         <span id="threat-level" class="threat-low">LOW</span>
       </div>
     </div>
 
     <div id="hud-left">
-      <div class="vitals-panel">
+      <div id="vitals-panel" class="vitals-panel">
         <span class="hud-tag">ARMOR INTEGRITY</span>
         <div class="health-bar large">
           <div id="player-health" class="health-fill player"></div>
         </div>
         <div class="vitals-row">
-          <span id="player-hp-text" class="vitals-num">100</span>
+          <span id="player-hp-text" class="vitals-num">80</span>
           <span class="vitals-unit">HP</span>
         </div>
       </div>
@@ -47,9 +51,9 @@
       <div class="ammo-panel">
         <span class="hud-tag">PLASMA RIFLE</span>
         <div class="ammo-row">
-          <span id="ammo-current" class="ammo-current">12</span>
+          <span id="ammo-current" class="ammo-current">10</span>
           <span class="ammo-sep">/</span>
-          <span id="ammo-reserve" class="ammo-reserve">48</span>
+          <span id="ammo-reserve" class="ammo-reserve">40</span>
         </div>
         <div id="reload-bar-wrap" class="reload-bar-wrap hidden">
           <div id="reload-bar" class="reload-bar"></div>
@@ -65,9 +69,11 @@
           <div id="enemy-health" class="health-fill enemy"></div>
         </div>
         <div class="enemy-row">
-          <span id="enemy-hp-text">100</span> HP
+          <span id="enemy-hp-text">130</span> HP
           <span class="dot-sep">·</span>
           <span id="enemy-distance">-- m</span>
+          <span class="dot-sep">·</span>
+          <span id="enemy-los" class="los-clear">IN SIGHT</span>
         </div>
       </div>
     </div>
@@ -97,27 +103,57 @@
     <div id="damage-vignette"></div>
     <div id="ammo-flash"></div>
     <div id="hud-message"></div>
+    <div id="version-badge">v1.2</div>
   </div>
 
   <div id="start-screen">
     <h1>ARENA STRIKE</h1>
-    <p class="subtitle">Hard Mode — Outgun the elite arena hostiles</p>
+    <p class="subtitle">3D First-Person Arena Shooter</p>
+
+    <div class="feature-list">
+      <span>Tactical HUD</span>
+      <span>Smart AI</span>
+      <span>Minimap</span>
+      <span>Hard Mode</span>
+    </div>
+
     <div class="controls">
       <h2>Controls</h2>
       <ul>
-        <li><kbd>↑</kbd> Move forward</li>
-        <li><kbd>↓</kbd> Move backward</li>
-        <li><kbd>←</kbd> Turn left</li>
-        <li><kbd>→</kbd> Turn right</li>
+        <li><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Move &amp; turn</li>
         <li><kbd>Space</kbd> Shoot</li>
+        <li><kbd>R</kbd> Reload</li>
+        <li><kbd>P</kbd> / <kbd>Esc</kbd> Pause</li>
       </ul>
     </div>
+
+    <div class="difficulty-select">
+      <h2>Difficulty</h2>
+      <div class="difficulty-buttons">
+        <button type="button" class="diff-btn" data-diff="normal">Normal</button>
+        <button type="button" class="diff-btn active" data-diff="hard">Hard</button>
+      </div>
+      <p id="diff-description" class="diff-description">
+        Elite hostile — faster, tougher, burst fire, uses cover.
+      </p>
+    </div>
+
     <button id="start-btn">Enter Arena</button>
+  </div>
+
+  <div id="pause-screen" class="hidden">
+    <h2>PAUSED</h2>
+    <p class="pause-hint">Press P or Esc to resume</p>
+    <div class="pause-actions">
+      <button id="resume-btn">Resume</button>
+      <button id="quit-btn" class="secondary">Main Menu</button>
+    </div>
   </div>
 
   <div id="game-over" class="hidden">
     <h1 id="result-title">Victory!</h1>
     <p id="result-message">You eliminated the opponent.</p>
+    <div id="result-stats" class="result-stats"></div>
     <button id="restart-btn">Play Again</button>
   </div>
 

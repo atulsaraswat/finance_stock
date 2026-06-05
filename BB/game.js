@@ -1,44 +1,76 @@
 import * as THREE from "three";
 
-// ── Config (Hard Mode) ──────────────────────────────────────────────
+// ── Config ──────────────────────────────────────────────────────────
 const ARENA_SIZE = 40;
 const WALL_HEIGHT = 6;
 const PLAYER_SPEED = 0.16;
 const TURN_SPEED = 0.042;
 const BULLET_SPEED = 1.15;
-const PLAYER_BULLET_DAMAGE = 16;
-const ENEMY_BULLET_DAMAGE = 24;
-const FIRE_COOLDOWN = 420;
-const MAG_SIZE = 10;
-const RESERVE_AMMO = 40;
-const RELOAD_TIME = 2000;
-const MAX_HP = 80;
-const ENEMY_MAX_HP = 130;
-const BOT_SPEED = 0.15;
-const BOT_TURN_SPEED = 0.05;
-const BOT_FIRE_RANGE = 30;
-const BOT_FIRE_COOLDOWN = 480;
-const BOT_BURST_SIZE = 3;
-const BOT_BURST_GAP = 120;
-const BOT_ACCURACY = 0.91;
-const ENEMY_BULLET_SPEED = 1.5;
+
+const DIFFICULTY_PRESETS = {
+  normal: {
+    label: "NORMAL",
+    description: "Standard hostile — moderate speed and accuracy.",
+    maxHp: 100,
+    enemyMaxHp: 100,
+    playerDamage: 20,
+    enemyDamage: 18,
+    fireCooldown: 380,
+    magSize: 12,
+    reserveAmmo: 48,
+    reloadTime: 1600,
+    botSpeed: 0.11,
+    botTurnSpeed: 0.038,
+    botFireRange: 24,
+    botFireCooldown: 720,
+    botBurstSize: 2,
+    botBurstPause: 1100,
+    botAccuracy: 0.78,
+    enemyBulletSpeed: 1.2,
+  },
+  hard: {
+    label: "HARD",
+    description: "Elite hostile — faster, tougher, burst fire, uses cover.",
+    maxHp: 80,
+    enemyMaxHp: 130,
+    playerDamage: 16,
+    enemyDamage: 24,
+    fireCooldown: 420,
+    magSize: 10,
+    reserveAmmo: 40,
+    reloadTime: 2000,
+    botSpeed: 0.15,
+    botTurnSpeed: 0.05,
+    botFireRange: 30,
+    botFireCooldown: 480,
+    botBurstSize: 3,
+    botBurstPause: 1300,
+    botAccuracy: 0.91,
+    enemyBulletSpeed: 1.5,
+  },
+};
+
+let difficulty = "hard";
+let cfg = { ...DIFFICULTY_PRESETS.hard };
 
 // ── State ───────────────────────────────────────────────────────────
 const keys = {};
 let gameRunning = false;
-let playerHP = MAX_HP;
-let enemyHP = ENEMY_MAX_HP;
+let gamePaused = false;
+let playerHP = cfg.maxHp;
+let enemyHP = cfg.enemyMaxHp;
 let kills = 0;
 let lastPlayerShot = 0;
 let lastBotShot = 0;
 let playerYaw = 0;
 let botYaw = Math.PI;
-let magAmmo = MAG_SIZE;
-let reserveAmmo = RESERVE_AMMO;
+let magAmmo = cfg.magSize;
+let reserveAmmo = cfg.reserveAmmo;
 let isReloading = false;
 let reloadStart = 0;
 let gameStartTime = 0;
 let botBurstCount = 0;
+let botBurstPauseUntil = 0;
 let botStrafeDir = 1;
 let lastBotStrafeSwitch = 0;
 let damageVignetteTimeout = 0;
@@ -46,6 +78,9 @@ let hitMarkerTimeout = 0;
 let hudMessageTimeout = 0;
 let prevPlayerX = 0;
 let prevPlayerZ = 0;
+let shotsFired = 0;
+let shotsHit = 0;
+let damageTaken = 0;
 
 const bullets = [];
 const particles = [];
@@ -53,8 +88,13 @@ const particles = [];
 // ── DOM ─────────────────────────────────────────────────────────────
 const startScreen = document.getElementById("start-screen");
 const gameOverScreen = document.getElementById("game-over");
+const pauseScreen = document.getElementById("pause-screen");
 const startBtn = document.getElementById("start-btn");
 const restartBtn = document.getElementById("restart-btn");
+const resumeBtn = document.getElementById("resume-btn");
+const quitBtn = document.getElementById("quit-btn");
+const uiLayer = document.getElementById("ui");
+const vitalsPanel = document.getElementById("vitals-panel");
 const playerHealthBar = document.getElementById("player-health");
 const enemyHealthBar = document.getElementById("enemy-health");
 const playerHpText = document.getElementById("player-hp-text");
@@ -63,14 +103,17 @@ const killsEl = document.getElementById("kills");
 const ammoFlash = document.getElementById("ammo-flash");
 const resultTitle = document.getElementById("result-title");
 const resultMessage = document.getElementById("result-message");
+const resultStats = document.getElementById("result-stats");
 const missionTimer = document.getElementById("mission-timer");
 const threatLevel = document.getElementById("threat-level");
+const hudDifficulty = document.getElementById("hud-difficulty");
 const ammoCurrent = document.getElementById("ammo-current");
 const ammoReserve = document.getElementById("ammo-reserve");
 const reloadBarWrap = document.getElementById("reload-bar-wrap");
 const reloadBar = document.getElementById("reload-bar");
 const weaponStatus = document.getElementById("weapon-status");
 const enemyDistance = document.getElementById("enemy-distance");
+const enemyLos = document.getElementById("enemy-los");
 const crosshair = document.getElementById("crosshair");
 const hitMarker = document.getElementById("hit-marker");
 const damageVignette = document.getElementById("damage-vignette");
@@ -80,6 +123,8 @@ const enemyPointerArrow = document.getElementById("enemy-pointer-arrow");
 const enemyPointerDist = document.getElementById("enemy-pointer-dist");
 const minimapCanvas = document.getElementById("minimap");
 const minimapCtx = minimapCanvas.getContext("2d");
+const diffDescription = document.getElementById("diff-description");
+const diffButtons = document.querySelectorAll(".diff-btn");
 
 // ── Three.js setup ──────────────────────────────────────────────────
 const scene = new THREE.Scene();
@@ -482,8 +527,40 @@ function flashDamage() {
   damageVignetteTimeout = setTimeout(() => damageVignette.classList.remove("active"), 250);
 }
 
+function applyDifficulty(mode) {
+  difficulty = mode;
+  cfg = { ...DIFFICULTY_PRESETS[mode] };
+  hudDifficulty.textContent = cfg.label;
+  diffDescription.textContent = cfg.description;
+  diffButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.diff === mode);
+  });
+}
+
+function togglePause(force) {
+  if (!gameRunning) return;
+  gamePaused = force !== undefined ? force : !gamePaused;
+  pauseScreen.classList.toggle("hidden", !gamePaused);
+  uiLayer.classList.toggle("paused", gamePaused);
+  if (gamePaused) {
+    Object.keys(keys).forEach((k) => { keys[k] = false; });
+  }
+}
+
+function returnToMenu() {
+  gameRunning = false;
+  gamePaused = false;
+  pauseScreen.classList.add("hidden");
+  gameOverScreen.classList.add("hidden");
+  startScreen.classList.remove("hidden");
+  uiLayer.classList.add("menu-open");
+  uiLayer.classList.remove("paused");
+  bullets.forEach((b) => scene.remove(b.mesh));
+  bullets.length = 0;
+}
+
 function startReload() {
-  if (isReloading || magAmmo >= MAG_SIZE || reserveAmmo <= 0) return;
+  if (isReloading || magAmmo >= cfg.magSize || reserveAmmo <= 0) return;
   isReloading = true;
   reloadStart = performance.now();
   reloadBarWrap.classList.remove("hidden");
@@ -493,7 +570,7 @@ function startReload() {
 }
 
 function finishReload() {
-  const needed = MAG_SIZE - magAmmo;
+  const needed = cfg.magSize - magAmmo;
   const loaded = Math.min(needed, reserveAmmo);
   magAmmo += loaded;
   reserveAmmo -= loaded;
@@ -506,7 +583,7 @@ function finishReload() {
 
 function updateReload(now) {
   if (!isReloading) return;
-  const progress = Math.min(1, (now - reloadStart) / RELOAD_TIME);
+  const progress = Math.min(1, (now - reloadStart) / cfg.reloadTime);
   reloadBar.style.width = `${progress * 100}%`;
   if (progress >= 1) finishReload();
 }
@@ -523,9 +600,10 @@ function playerShoot() {
     return;
   }
 
-  if (now - lastPlayerShot < FIRE_COOLDOWN) return;
+  if (now - lastPlayerShot < cfg.fireCooldown) return;
   lastPlayerShot = now;
   magAmmo--;
+  shotsFired++;
 
   const origin = camera.position.clone();
   const direction = new THREE.Vector3(0, 0, -1);
@@ -541,8 +619,8 @@ function playerShoot() {
 
 function botShoot() {
   const now = performance.now();
-  if (now - lastBotShot < BOT_FIRE_COOLDOWN) return;
-  if (botBurstCount >= BOT_BURST_SIZE && now - lastBotShot < BOT_BURST_GAP) return;
+  if (now < botBurstPauseUntil) return;
+  if (now - lastBotShot < cfg.botFireCooldown) return;
 
   const toPlayer = new THREE.Vector3(
     camera.position.x - botGroup.position.x,
@@ -550,15 +628,19 @@ function botShoot() {
     camera.position.z - botGroup.position.z
   );
   const dist = toPlayer.length();
-  if (dist > BOT_FIRE_RANGE) return;
+  if (dist > cfg.botFireRange) return;
 
   lastBotShot = now;
-  botBurstCount = (botBurstCount + 1) % (BOT_BURST_SIZE + 1);
+  botBurstCount++;
+  if (botBurstCount >= cfg.botBurstSize) {
+    botBurstCount = 0;
+    botBurstPauseUntil = now + cfg.botBurstPause;
+  }
 
   // Lead target based on player movement
   const playerVelX = camera.position.x - prevPlayerX;
   const playerVelZ = camera.position.z - prevPlayerZ;
-  const leadTime = dist / ENEMY_BULLET_SPEED;
+  const leadTime = dist / cfg.enemyBulletSpeed;
   const predictedX = camera.position.x + playerVelX * leadTime * 8;
   const predictedZ = camera.position.z + playerVelZ * leadTime * 8;
 
@@ -569,7 +651,7 @@ function botShoot() {
   ).normalize();
   direction.y = (camera.position.y - 1.5) / dist;
 
-  if (Math.random() > BOT_ACCURACY) {
+  if (Math.random() > cfg.botAccuracy) {
     direction.x += (Math.random() - 0.5) * 0.18;
     direction.z += (Math.random() - 0.5) * 0.18;
     direction.y += (Math.random() - 0.5) * 0.1;
@@ -581,22 +663,170 @@ function botShoot() {
     botGroup.position.z + direction.z * 0.5
   );
 
-  spawnBullet(origin, direction, false, ENEMY_BULLET_SPEED);
+  spawnBullet(origin, direction, false, cfg.enemyBulletSpeed);
 }
 
 // ── Damage & UI ─────────────────────────────────────────────────────
-function updateHealthUI() {
-  playerHealthBar.style.width = `${Math.max(0, playerHP)}%`;
-  enemyHealthBar.style.width = `${Math.max(0, enemyHP)}%`;
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+  const s = String(totalSec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function getEnemyDistance() {
+  const dx = camera.position.x - botGroup.position.x;
+  const dz = camera.position.z - botGroup.position.z;
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+function updateThreat(dist) {
+  threatLevel.classList.remove("threat-low", "threat-med", "threat-high");
+  if (dist < 10) {
+    threatLevel.textContent = "CRITICAL";
+    threatLevel.classList.add("threat-high");
+  } else if (dist < 18) {
+    threatLevel.textContent = "HIGH";
+    threatLevel.classList.add("threat-med");
+  } else {
+    threatLevel.textContent = "MODERATE";
+    threatLevel.classList.add("threat-low");
+  }
+}
+
+function drawMinimap() {
+  const w = minimapCanvas.width;
+  const h = minimapCanvas.height;
+  const scale = w / ARENA_SIZE;
+
+  minimapCtx.fillStyle = "rgba(0, 12, 24, 0.9)";
+  minimapCtx.fillRect(0, 0, w, h);
+
+  minimapCtx.strokeStyle = "rgba(102, 204, 255, 0.2)";
+  minimapCtx.lineWidth = 1;
+  minimapCtx.strokeRect(4, 4, w - 8, h - 8);
+
+  // Pillars
+  minimapCtx.fillStyle = "rgba(80, 80, 110, 0.8)";
+  pillars.forEach((p) => {
+    const px = w / 2 + p.x * scale;
+    const py = h / 2 + p.z * scale;
+    minimapCtx.fillRect(px - 4, py - 4, 8, 8);
+  });
+
+  // Enemy
+  const ex = w / 2 + botGroup.position.x * scale;
+  const ey = h / 2 + botGroup.position.z * scale;
+  minimapCtx.fillStyle = "#ff4444";
+  minimapCtx.beginPath();
+  minimapCtx.arc(ex, ey, 5, 0, Math.PI * 2);
+  minimapCtx.fill();
+
+  // Player
+  const px = w / 2 + camera.position.x * scale;
+  const py = h / 2 + camera.position.z * scale;
+  minimapCtx.fillStyle = "#44ddff";
+  minimapCtx.beginPath();
+  minimapCtx.moveTo(px, py - 6);
+  minimapCtx.lineTo(px + 4, py + 4);
+  minimapCtx.lineTo(px - 4, py + 4);
+  minimapCtx.closePath();
+  minimapCtx.fill();
+
+  // Player facing
+  minimapCtx.strokeStyle = "#44ddff";
+  minimapCtx.lineWidth = 2;
+  minimapCtx.beginPath();
+  minimapCtx.moveTo(px, py);
+  minimapCtx.lineTo(px + Math.sin(playerYaw) * 12, py + Math.cos(playerYaw) * 12);
+  minimapCtx.stroke();
+}
+
+function updateEnemyPointer(dist) {
+  const dx = botGroup.position.x - camera.position.x;
+  const dz = botGroup.position.z - camera.position.z;
+  const angleToEnemy = Math.atan2(dx, dz);
+  const relAngle = angleToEnemy - playerYaw;
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const toEnemy = new THREE.Vector3(dx, 0, dz).normalize();
+  const dot = forward.dot(toEnemy);
+
+  if (dot > 0.25) {
+    enemyPointer.classList.add("hidden");
+    return;
+  }
+
+  enemyPointer.classList.remove("hidden");
+  const edgePad = 80;
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const px = cx + Math.sin(relAngle) * (Math.min(cx, cy) - edgePad);
+  const py = cy - Math.cos(relAngle) * (Math.min(cx, cy) - edgePad);
+
+  enemyPointer.style.left = `${px}px`;
+  enemyPointer.style.top = `${py}px`;
+  enemyPointerArrow.style.transform = `rotate(${relAngle * (180 / Math.PI)}deg)`;
+  enemyPointerDist.textContent = `${Math.round(dist)}m`;
+}
+
+function updateHUD(now) {
+  const dist = getEnemyDistance();
+
+  playerHealthBar.style.width = `${(playerHP / cfg.maxHp) * 100}%`;
+  enemyHealthBar.style.width = `${(enemyHP / cfg.enemyMaxHp) * 100}%`;
   playerHpText.textContent = Math.max(0, playerHP);
   enemyHpText.textContent = Math.max(0, enemyHP);
+  enemyDistance.textContent = `${Math.round(dist)} m`;
+  ammoCurrent.textContent = magAmmo;
+  ammoReserve.textContent = reserveAmmo;
+
+  if (gameRunning) {
+    missionTimer.textContent = formatTime(now - gameStartTime);
+  }
+
+  updateThreat(dist);
+  drawMinimap();
+  updateEnemyPointer(dist);
+
+  const moving = keys.ArrowUp || keys.ArrowDown;
+  const onCooldown = now - lastPlayerShot < cfg.fireCooldown;
+  crosshair.classList.toggle("spread", moving);
+  crosshair.classList.toggle("cooldown", onCooldown || isReloading);
+
+  vitalsPanel.classList.toggle("critical", playerHP > 0 && playerHP <= cfg.maxHp * 0.25);
+
+  const los = hasLineOfSight();
+  enemyLos.textContent = los ? "IN SIGHT" : "BEHIND COVER";
+  enemyLos.className = los ? "los-clear" : "los-blocked";
+
+  if (!isReloading) {
+    if (magAmmo === 0) {
+      weaponStatus.textContent = "EMPTY";
+      weaponStatus.className = "weapon-status empty";
+    } else {
+      weaponStatus.textContent = "READY";
+      weaponStatus.className = "weapon-status";
+    }
+  }
+}
+
+function updateHealthUI() {
+  updateHUD(performance.now());
 }
 
 function takeDamage(isPlayer, amount) {
   if (isPlayer) {
     playerHP = Math.max(0, playerHP - amount);
+    damageTaken += amount;
+    flashDamage();
+    if (playerHP > 0 && playerHP <= cfg.maxHp * 0.25) {
+      showHudMessage("CRITICAL DAMAGE — SEEK COVER", 1500);
+    }
   } else {
     enemyHP = Math.max(0, enemyHP - amount);
+    shotsHit++;
+    showHitMarker();
   }
   updateHealthUI();
 
@@ -605,14 +835,31 @@ function takeDamage(isPlayer, amount) {
   }
 }
 
+function renderResultStats(victory) {
+  const elapsed = performance.now() - gameStartTime;
+  const accuracy = shotsFired > 0 ? Math.round((shotsHit / shotsFired) * 100) : 0;
+  resultStats.innerHTML = `
+    <div class="stat-item"><span class="stat-label">TIME</span><span class="stat-value">${formatTime(elapsed)}</span></div>
+    <div class="stat-item"><span class="stat-label">DIFFICULTY</span><span class="stat-value">${cfg.label}</span></div>
+    <div class="stat-item"><span class="stat-label">SHOTS FIRED</span><span class="stat-value">${shotsFired}</span></div>
+    <div class="stat-item"><span class="stat-label">ACCURACY</span><span class="stat-value">${accuracy}%</span></div>
+    <div class="stat-item"><span class="stat-label">HITS LANDED</span><span class="stat-value">${shotsHit}</span></div>
+    <div class="stat-item"><span class="stat-label">DAMAGE TAKEN</span><span class="stat-value">${damageTaken}</span></div>
+  `;
+}
+
 function endGame(victory) {
   gameRunning = false;
+  gamePaused = false;
+  pauseScreen.classList.add("hidden");
+  uiLayer.classList.remove("paused");
   gameOverScreen.classList.remove("hidden", "victory", "defeat");
   gameOverScreen.classList.add(victory ? "victory" : "defeat");
   resultTitle.textContent = victory ? "Victory!" : "Defeated";
   resultMessage.textContent = victory
-    ? "You eliminated the arena bot."
-    : "The bot got the better of you. Try again!";
+    ? "You eliminated the elite hostile."
+    : "The hostile overwhelmed your defenses. Try again!";
+  renderResultStats(victory);
   if (victory) {
     kills++;
     killsEl.textContent = kills;
@@ -620,16 +867,30 @@ function endGame(victory) {
 }
 
 function resetGame() {
-  playerHP = MAX_HP;
-  enemyHP = MAX_HP;
+  applyDifficulty(difficulty);
+  playerHP = cfg.maxHp;
+  enemyHP = cfg.enemyMaxHp;
   playerYaw = 0;
   botYaw = Math.PI;
   lastPlayerShot = 0;
   lastBotShot = 0;
+  magAmmo = cfg.magSize;
+  reserveAmmo = cfg.reserveAmmo;
+  isReloading = false;
+  botBurstCount = 0;
+  botBurstPauseUntil = 0;
+  botStrafeDir = 1;
+  gameStartTime = performance.now();
+  shotsFired = 0;
+  shotsHit = 0;
+  damageTaken = 0;
+  gamePaused = false;
 
   camera.position.set(0, 1.7, 12);
   camera.rotation.set(0, 0, 0);
   camera.rotation.order = "YXZ";
+  prevPlayerX = camera.position.x;
+  prevPlayerZ = camera.position.z;
 
   botGroup.position.set(0, 0, -12);
   botGroup.rotation.y = 0;
@@ -639,29 +900,111 @@ function resetGame() {
   particles.forEach((p) => scene.remove(p.mesh));
   particles.length = 0;
 
+  reloadBarWrap.classList.add("hidden");
+  reloadBar.style.width = "0%";
+  weaponStatus.textContent = "READY";
+  weaponStatus.className = "weapon-status";
+  enemyPointer.classList.add("hidden");
+
   updateHealthUI();
+  showHudMessage("HOSTILE DETECTED — ENGAGE", 2500);
   gameOverScreen.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  startScreen.classList.add("hidden");
+  uiLayer.classList.remove("menu-open", "paused");
   gameRunning = true;
 }
 
 // ── Bot AI ──────────────────────────────────────────────────────────
+function hasLineOfSight() {
+  const steps = 12;
+  const dx = (camera.position.x - botGroup.position.x) / steps;
+  const dz = (camera.position.z - botGroup.position.z) / steps;
+  let x = botGroup.position.x;
+  let z = botGroup.position.z;
+
+  for (let i = 1; i < steps; i++) {
+    x += dx;
+    z += dz;
+    for (const p of pillars) {
+      const pdx = x - p.x;
+      const pdz = z - p.z;
+      if (pdx * pdx + pdz * pdz < p.r * p.r) return false;
+    }
+  }
+  return true;
+}
+
+function findCoverDirection() {
+  let bestScore = Infinity;
+  let bestAngle = botYaw;
+
+  for (let i = 0; i < 8; i++) {
+    const testAngle = botYaw + (i / 8) * Math.PI * 2;
+    const tx = botGroup.position.x + Math.sin(testAngle) * 4;
+    const tz = botGroup.position.z + Math.cos(testAngle) * 4;
+    const [nx, nz] = resolvePillarCollision(tx, tz, 0.5);
+
+    let blocked = false;
+    const pdx = camera.position.x - nx;
+    const pdz = camera.position.z - nz;
+    const steps = 6;
+    for (let s = 1; s <= steps; s++) {
+      const sx = nx + (pdx / steps) * s;
+      const sz = nz + (pdz / steps) * s;
+      for (const p of pillars) {
+        const ddx = sx - p.x;
+        const ddz = sz - p.z;
+        if (ddx * ddx + ddz * ddz < p.r * p.r) {
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) break;
+    }
+
+    const distToPlayer = Math.hypot(nx - camera.position.x, nz - camera.position.z);
+    const score = blocked ? distToPlayer : distToPlayer + 20;
+    if (score < bestScore) {
+      bestScore = score;
+      bestAngle = Math.atan2(nx - botGroup.position.x, nz - botGroup.position.z);
+    }
+  }
+  return bestAngle;
+}
+
 function updateBot() {
   const dx = camera.position.x - botGroup.position.x;
   const dz = camera.position.z - botGroup.position.z;
   const dist = Math.sqrt(dx * dx + dz * dz);
+  const los = hasLineOfSight();
+  const now = performance.now();
 
-  const targetAngle = Math.atan2(dx, dz);
+  let targetAngle;
+  if (los && dist < 14 && playerHP > 30) {
+    targetAngle = findCoverDirection();
+  } else {
+    targetAngle = Math.atan2(dx, dz);
+  }
+
   let angleDiff = targetAngle - botYaw;
   while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
   while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-  botYaw += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), BOT_TURN_SPEED);
+  botYaw += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), cfg.botTurnSpeed);
   botGroup.rotation.y = botYaw + Math.PI;
 
-  const idealDist = 10;
-  if (dist > idealDist + 2) {
-    const moveX = Math.sin(botYaw) * BOT_SPEED;
-    const moveZ = Math.cos(botYaw) * BOT_SPEED;
+  const idealDist = 8;
+  const speedMult = dist < 12 ? 1.15 : 1;
+
+  if (now - lastBotStrafeSwitch > 1800) {
+    botStrafeDir *= -1;
+    lastBotStrafeSwitch = now;
+  }
+
+  if (dist > idealDist + 1.5) {
+    const moveX = Math.sin(botYaw) * cfg.botSpeed * speedMult;
+    const moveZ = Math.cos(botYaw) * cfg.botSpeed * speedMult;
     const [nx, nz] = resolvePillarCollision(
       botGroup.position.x + moveX,
       botGroup.position.z + moveZ,
@@ -669,9 +1012,9 @@ function updateBot() {
     );
     botGroup.position.x = nx;
     botGroup.position.z = nz;
-  } else if (dist < idealDist - 3) {
-    const moveX = -Math.sin(botYaw) * BOT_SPEED * 0.7;
-    const moveZ = -Math.cos(botYaw) * BOT_SPEED * 0.7;
+  } else if (dist < idealDist - 2) {
+    const moveX = -Math.sin(botYaw) * cfg.botSpeed * 0.85;
+    const moveZ = -Math.cos(botYaw) * cfg.botSpeed * 0.85;
     const [nx, nz] = resolvePillarCollision(
       botGroup.position.x + moveX,
       botGroup.position.z + moveZ,
@@ -680,8 +1023,7 @@ function updateBot() {
     botGroup.position.x = nx;
     botGroup.position.z = nz;
   } else {
-    // Strafe
-    const strafe = Math.sin(performance.now() * 0.001) * BOT_SPEED * 0.5;
+    const strafe = botStrafeDir * cfg.botSpeed * 0.75;
     const moveX = Math.cos(botYaw) * strafe;
     const moveZ = -Math.sin(botYaw) * strafe;
     const [nx, nz] = resolvePillarCollision(
@@ -693,7 +1035,12 @@ function updateBot() {
     botGroup.position.z = nz;
   }
 
-  if (Math.abs(angleDiff) < 0.4) {
+  const aimDiff = Math.atan2(dx, dz) - botYaw;
+  let normAim = aimDiff;
+  while (normAim > Math.PI) normAim -= Math.PI * 2;
+  while (normAim < -Math.PI) normAim += Math.PI * 2;
+
+  if (Math.abs(normAim) < 0.35 && los) {
     botShoot();
   }
 }
@@ -775,7 +1122,7 @@ function updateBullets() {
       const dy = pos.y - (camera.position.y - 0.3);
       if (dx * dx + dz * dz + dy * dy < 0.7) {
         spawnImpact(pos.clone(), 0xff4444);
-        takeDamage(true, BULLET_DAMAGE);
+        takeDamage(true, cfg.enemyDamage);
         scene.remove(b.mesh);
         bullets.splice(i, 1);
         continue;
@@ -789,7 +1136,7 @@ function updateBullets() {
       const dy = pos.y - 1.5;
       if (dx * dx + dz * dz + dy * dy < 1.0) {
         spawnImpact(pos.clone(), 0xff6644);
-        takeDamage(false, BULLET_DAMAGE);
+        takeDamage(false, cfg.playerDamage);
         scene.remove(b.mesh);
         bullets.splice(i, 1);
         continue;
@@ -819,9 +1166,21 @@ function updateParticles() {
 
 // ── Input ───────────────────────────────────────────────────────────
 window.addEventListener("keydown", (e) => {
+  if (e.code === "KeyP" || e.code === "Escape") {
+    e.preventDefault();
+    if (gameRunning) togglePause();
+    return;
+  }
+
+  if (e.code === "KeyR" && gameRunning && !gamePaused) {
+    e.preventDefault();
+    startReload();
+    return;
+  }
+
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
     e.preventDefault();
-    keys[e.code] = true;
+    if (gameRunning && !gamePaused) keys[e.code] = true;
   }
 });
 
@@ -831,14 +1190,22 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("blur", () => {
   Object.keys(keys).forEach((k) => { keys[k] = false; });
+  if (gameRunning) togglePause(true);
+});
+
+diffButtons.forEach((btn) => {
+  btn.addEventListener("click", () => applyDifficulty(btn.dataset.diff));
 });
 
 startBtn.addEventListener("click", () => {
-  startScreen.classList.add("hidden");
   resetGame();
 });
 
 restartBtn.addEventListener("click", resetGame);
+
+resumeBtn.addEventListener("click", () => togglePause(false));
+
+quitBtn.addEventListener("click", returnToMenu);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -848,20 +1215,26 @@ window.addEventListener("resize", () => {
 
 // ── Game loop ───────────────────────────────────────────────────────
 camera.rotation.order = "YXZ";
+applyDifficulty(difficulty);
 updateHealthUI();
 
 function animate() {
   requestAnimationFrame(animate);
+  const now = performance.now();
 
-  if (gameRunning) {
+  if (gameRunning && !gamePaused) {
+    prevPlayerX = camera.position.x;
+    prevPlayerZ = camera.position.z;
+    updateReload(now);
     updatePlayer();
     updateBot();
     updateBullets();
+    updateHUD(now);
   }
   updateParticles();
 
   // Subtle weapon bob
-  if (gameRunning && (keys.ArrowUp || keys.ArrowDown)) {
+  if (gameRunning && !gamePaused && (keys.ArrowUp || keys.ArrowDown)) {
     weaponGroup.position.y = -0.15 + Math.sin(performance.now() * 0.012) * 0.02;
   }
 
