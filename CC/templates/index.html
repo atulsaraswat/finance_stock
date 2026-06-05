@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CC Job Match Assistant</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; margin: 0; padding: 2rem; background: #f8fafc; color: #111827; }
+    .container { max-width: 960px; margin: 0 auto; }
+    h1, h2 { margin-top: 0; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+    pre { background: #f3f4f6; padding: 1rem; overflow-x: auto; border-radius: 12px; }
+    ul { margin: 0; padding-left: 1.5rem; }
+    li { margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CC Job Match Assistant</h1>
+    <p>This browser interface loads your existing profile from <strong>{{ profile_path }}</strong> and shows the Python requirements for the project.</p>
+
+    <div class="card">
+      <h2>Loaded profile</h2>
+      <pre>{{ profile | tojson(indent=2) }}</pre>
+    </div>
+
+    <div class="card">
+      <h2>Project requirements</h2>
+      <ul>
+        {% for requirement in requirements %}
+          <li>{{ requirement }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

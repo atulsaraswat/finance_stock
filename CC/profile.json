@@ -1,0 +1,6 @@
+{
+  "name": "Test User",
+  "skills": ["python", "data analysis"],
+  "experience_years": 3,
+  "desired_roles": ["data analyst", "software engineer"]
+}
