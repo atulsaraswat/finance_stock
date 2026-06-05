@@ -1,58 +1,53 @@
-# Arena Strike v1.2
+# Arena Strike v1.3
 
-A browser-based 3D first-person arena shooter built with Three.js. Fight an armored AI hostile in a neon-lit arena with a full tactical HUD.
+A browser-based 3D first-person arena shooter built with Three.js. Fight an armored AI hostile across multiple environments with a full tactical HUD.
 
 ## Features
 
-- **3D arena** with cover pillars, shadows, and neon lighting
-- **Detailed enemy** — armored combatant with glowing visor, rifle, and insignia
-- **Tactical HUD** — health, ammo, reload bar, threat level, minimap, crosshair, hit marker
-- **Combat feedback** — damage vignette, off-screen enemy pointer, line-of-sight indicator
-- **Two difficulties** — Normal and Hard (elite AI with burst fire and cover-seeking)
-- **Pause menu** — resume or return to main menu
-- **Post-match stats** — time, accuracy, hits, damage taken
+- **4 battlefields** — City, Jungle, Mountains, and Desert with unique scenery
+- **Surrounding landscapes** — skylines, forests, peaks, and dunes visible beyond the arena
+- **3D arena** with themed cover, walls, lighting, and fog per map
+- **Detailed enemy** — armored combatant with glowing visor and rifle
+- **Tactical HUD** — health, ammo, reload, threat level, minimap, hit marker
+- **Two difficulties** — Normal and Hard
+- **Pause menu** and post-match combat stats
+
+## Battlefields
+
+| Map | Surroundings | Arena feel |
+|-----|--------------|------------|
+| **City** | Neon skyline, lit windows | Concrete grid, neon trim |
+| **Jungle** | Dense trees, undergrowth | Palm cover, green fog |
+| **Mountains** | Snow peaks, pine forest | Rocky boulders, alpine sky |
+| **Desert** | Sand dunes, cacti | Sandy floor, warm sunset |
 
 ## Controls
 
 | Key | Action |
 |-----|--------|
-| ↑ | Move forward |
-| ↓ | Move backward |
-| ← | Turn left |
-| → | Turn right |
+| ↑ ↓ ← → | Move & turn |
 | Space | Shoot |
 | R | Reload |
 | P / Esc | Pause |
 
-## Difficulty
-
-| | Normal | Hard |
-|---|--------|------|
-| Your HP | 100 | 80 |
-| Enemy HP | 100 | 130 |
-| Enemy damage | 18 | 24 |
-| AI | Moderate | Fast, accurate, uses cover |
-
 ## Run locally
-
-Serve the folder with any static file server:
 
 ```bash
 python -m http.server 3456 --directory .
 ```
 
-Then open `http://localhost:3456` in Chrome, Edge, or Firefox.
+Open `http://localhost:3456` in Chrome, Edge, or Firefox.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `index.html` | Page structure, HUD, menus |
-| `style.css` | HUD styling and overlays |
-| `game.js` | Three.js game logic, AI, combat |
+| `style.css` | HUD and menu styling |
+| `game.js` | Game logic, AI, combat |
+| `environments.js` | Map themes and surrounding scenery |
 | `README.md` | Documentation |
 
 ## Tech
 
-- [Three.js](https://threejs.org/) via CDN
-- No build step — ES modules only
+- [Three.js](https://threejs.org/) via CDN — no build step required

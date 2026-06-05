@@ -1,8 +1,14 @@
 import * as THREE from "three";
+import {
+  ARENA_SIZE,
+  WALL_HEIGHT,
+  PILLAR_POSITIONS,
+  ENVIRONMENTS,
+  buildWorld,
+  applyEnvironmentLighting,
+} from "./environments.js";
 
 // ── Config ──────────────────────────────────────────────────────────
-const ARENA_SIZE = 40;
-const WALL_HEIGHT = 6;
 const PLAYER_SPEED = 0.16;
 const TURN_SPEED = 0.042;
 const BULLET_SPEED = 1.15;
@@ -52,6 +58,8 @@ const DIFFICULTY_PRESETS = {
 
 let difficulty = "hard";
 let cfg = { ...DIFFICULTY_PRESETS.hard };
+let currentEnvironment = "city";
+let activeEnv = ENVIRONMENTS.city;
 
 // ── State ───────────────────────────────────────────────────────────
 const keys = {};
@@ -125,11 +133,17 @@ const minimapCanvas = document.getElementById("minimap");
 const minimapCtx = minimapCanvas.getContext("2d");
 const diffDescription = document.getElementById("diff-description");
 const diffButtons = document.querySelectorAll(".diff-btn");
+const mapDescription = document.getElementById("map-description");
+const mapButtons = document.querySelectorAll(".map-btn");
+const hudField = document.getElementById("hud-field");
 
 // ── Three.js setup ──────────────────────────────────────────────────
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a14);
-scene.fog = new THREE.Fog(0x0a0a14, 20, 55);
+
+const arenaGroup = new THREE.Group();
+const surroundingsGroup = new THREE.Group();
+scene.add(surroundingsGroup);
+scene.add(arenaGroup);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 1.7, 12);
@@ -165,77 +179,23 @@ const rimLight2 = new THREE.PointLight(0xff4444, 0.6, 50);
 rimLight2.position.set(10, 8, 10);
 scene.add(rimLight2);
 
-// ── Arena geometry ──────────────────────────────────────────────────
-function createArena() {
-  const half = ARENA_SIZE / 2;
+const worldLights = { ambient, sun, rim1: rimLight, rim2: rimLight2 };
 
-  // Floor
-  const floorGeo = new THREE.PlaneGeometry(ARENA_SIZE, ARENA_SIZE, 20, 20);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a28,
-    roughness: 0.85,
-    metalness: 0.15,
-  });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
+// ── World / arena ───────────────────────────────────────────────────
+const pillars = PILLAR_POSITIONS.map(([x, z]) => ({ x, z, r: 1.8 }));
 
-  // Grid lines on floor
-  const gridHelper = new THREE.GridHelper(ARENA_SIZE, 20, 0x334466, 0x222233);
-  gridHelper.position.y = 0.01;
-  scene.add(gridHelper);
-
-  // Walls
-  const wallMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2a3a,
-    roughness: 0.7,
-    metalness: 0.3,
-  });
-
-  const wallGeo = new THREE.BoxGeometry(ARENA_SIZE, WALL_HEIGHT, 0.8);
-  const walls = [
-    { pos: [0, WALL_HEIGHT / 2, -half], rot: 0 },
-    { pos: [0, WALL_HEIGHT / 2, half], rot: 0 },
-    { pos: [-half, WALL_HEIGHT / 2, 0], rot: Math.PI / 2 },
-    { pos: [half, WALL_HEIGHT / 2, 0], rot: Math.PI / 2 },
-  ];
-
-  walls.forEach(({ pos, rot }) => {
-    const wall = new THREE.Mesh(wallGeo, wallMat);
-    wall.position.set(...pos);
-    wall.rotation.y = rot;
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    scene.add(wall);
-  });
-
-  // Cover pillars
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x3a3a50, roughness: 0.6, metalness: 0.4 });
-  const pillarPositions = [
-    [-8, 0, -8], [8, 0, -8], [-8, 0, 8], [8, 0, 8],
-    [0, 0, 0], [-12, 0, 0], [12, 0, 0], [0, 0, -12], [0, 0, 12],
-  ];
-
-  pillarPositions.forEach(([x, , z]) => {
-    const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.5, 2.5), pillarMat);
-    pillar.position.set(x, 1.75, z);
-    pillar.castShadow = true;
-    pillar.receiveShadow = true;
-    scene.add(pillar);
-  });
-
-  // Neon trim on walls
-  const trimMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
-  walls.forEach(({ pos, rot }) => {
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(ARENA_SIZE, 0.15, 0.2), trimMat);
-    trim.position.set(pos[0], 0.3, pos[2]);
-    trim.rotation.y = rot;
-    scene.add(trim);
+function applyEnvironment(mode) {
+  currentEnvironment = mode;
+  activeEnv = buildWorld(mode, arenaGroup, surroundingsGroup);
+  applyEnvironmentLighting(scene, activeEnv, worldLights);
+  hudField.textContent = activeEnv.label;
+  mapDescription.textContent = activeEnv.description;
+  mapButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.map === mode);
   });
 }
 
-createArena();
+applyEnvironment(currentEnvironment);
 
 // ── Enemy bot mesh ──────────────────────────────────────────────────
 const enemyGlowParts = [];
@@ -427,10 +387,6 @@ camera.add(weaponGroup);
 scene.add(camera);
 
 // ── Collision helpers ─────────────────────────────────────────────
-const pillars = [
-  [-8, -8], [8, -8], [-8, 8], [8, 8],
-  [0, 0], [-12, 0], [12, 0], [0, -12], [0, 12],
-].map(([x, z]) => ({ x, z, r: 1.8 }));
 
 function clampToArena(x, z) {
   const margin = 1.2;
@@ -535,6 +491,10 @@ function applyDifficulty(mode) {
   diffButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.diff === mode);
   });
+}
+
+function selectEnvironment(mode) {
+  if (ENVIRONMENTS[mode]) applyEnvironment(mode);
 }
 
 function togglePause(force) {
@@ -840,6 +800,7 @@ function renderResultStats(victory) {
   const accuracy = shotsFired > 0 ? Math.round((shotsHit / shotsFired) * 100) : 0;
   resultStats.innerHTML = `
     <div class="stat-item"><span class="stat-label">TIME</span><span class="stat-value">${formatTime(elapsed)}</span></div>
+    <div class="stat-item"><span class="stat-label">FIELD</span><span class="stat-value">${activeEnv.label}</span></div>
     <div class="stat-item"><span class="stat-label">DIFFICULTY</span><span class="stat-value">${cfg.label}</span></div>
     <div class="stat-item"><span class="stat-label">SHOTS FIRED</span><span class="stat-value">${shotsFired}</span></div>
     <div class="stat-item"><span class="stat-label">ACCURACY</span><span class="stat-value">${accuracy}%</span></div>
@@ -868,6 +829,7 @@ function endGame(victory) {
 
 function resetGame() {
   applyDifficulty(difficulty);
+  applyEnvironment(currentEnvironment);
   playerHP = cfg.maxHp;
   enemyHP = cfg.enemyMaxHp;
   playerYaw = 0;
@@ -907,7 +869,7 @@ function resetGame() {
   enemyPointer.classList.add("hidden");
 
   updateHealthUI();
-  showHudMessage("HOSTILE DETECTED — ENGAGE", 2500);
+  showHudMessage(`${activeEnv.label} — HOSTILE DETECTED`, 2500);
   gameOverScreen.classList.add("hidden");
   pauseScreen.classList.add("hidden");
   startScreen.classList.add("hidden");
@@ -1195,6 +1157,10 @@ window.addEventListener("blur", () => {
 
 diffButtons.forEach((btn) => {
   btn.addEventListener("click", () => applyDifficulty(btn.dataset.diff));
+});
+
+mapButtons.forEach((btn) => {
+  btn.addEventListener("click", () => selectEnvironment(btn.dataset.map));
 });
 
 startBtn.addEventListener("click", () => {

@@ -25,6 +25,10 @@
         <span id="kills">0</span>
       </div>
       <div class="hud-block">
+        <span class="hud-tag">FIELD</span>
+        <span id="hud-field">CITY</span>
+      </div>
+      <div class="hud-block">
         <span class="hud-tag">DIFFICULTY</span>
         <span id="hud-difficulty">HARD</span>
       </div>
@@ -103,7 +107,7 @@
     <div id="damage-vignette"></div>
     <div id="ammo-flash"></div>
     <div id="hud-message"></div>
-    <div id="version-badge">v1.2</div>
+    <div id="version-badge">v1.3</div>
   </div>
 
   <div id="start-screen">
@@ -112,9 +116,9 @@
 
     <div class="feature-list">
       <span>Tactical HUD</span>
+      <span>4 Environments</span>
       <span>Smart AI</span>
       <span>Minimap</span>
-      <span>Hard Mode</span>
     </div>
 
     <div class="controls">
@@ -125,6 +129,19 @@
         <li><kbd>R</kbd> Reload</li>
         <li><kbd>P</kbd> / <kbd>Esc</kbd> Pause</li>
       </ul>
+    </div>
+
+    <div class="map-select">
+      <h2>Battlefield</h2>
+      <div class="map-buttons">
+        <button type="button" class="map-btn active" data-map="city">City</button>
+        <button type="button" class="map-btn" data-map="jungle">Jungle</button>
+        <button type="button" class="map-btn" data-map="mountains">Mountains</button>
+        <button type="button" class="map-btn" data-map="desert">Desert</button>
+      </div>
+      <p id="map-description" class="map-description">
+        Urban ruins — concrete arena surrounded by a neon-lit skyline.
+      </p>
     </div>
 
     <div class="difficulty-select">
